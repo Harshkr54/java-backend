@@ -30,6 +30,14 @@ public class FolderController {
                 .body(ApiResponse.created("Folder created", FolderResponse.from(folder)));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<FolderResponse>> getFolder(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String id) {
+        FolderResponse folder = folderService.getFolder(userDetails.getUser().getId(), id);
+        return ResponseEntity.ok(ApiResponse.success(folder));
+    }
+
     @GetMapping({"", "/{id}/contents"})
     public ResponseEntity<ApiResponse<FolderContentsResponse>> getFolderContents(
             @AuthenticationPrincipal CustomUserDetails userDetails,

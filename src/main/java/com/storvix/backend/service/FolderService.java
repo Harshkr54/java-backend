@@ -115,6 +115,15 @@ public class FolderService {
                 .build();
     }
 
+    public FolderResponse getFolder(String userId, String folderId) {
+        Folder folder = folderRepository.findById(folderId)
+                .orElseThrow(() -> new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+        if (folder.getIsDeleted() || !folder.getOwner().getId().equals(userId)) {
+            throw new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
+        }
+        return FolderResponse.from(folder);
+    }
+
     private List<String> collectDescendantFolderIds(String rootId) {
         List<String> ids = new ArrayList<>();
         Queue<String> queue = new LinkedList<>();

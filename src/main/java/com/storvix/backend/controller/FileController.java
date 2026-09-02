@@ -13,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/files")
@@ -21,7 +22,7 @@ public class FileController {
 
     private final FileService fileService;
 
-    @PostMapping("/upload/init")
+    @PostMapping("/init-upload")
     public ResponseEntity<ApiResponse<Map<String, Object>>> initUpload(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody InitUploadRequest request) {
@@ -30,7 +31,7 @@ public class FileController {
                 .body(ApiResponse.created("Upload initialized", data));
     }
 
-    @PostMapping("/upload/complete")
+    @PostMapping("/complete-upload")
     public ResponseEntity<ApiResponse<FileResponse>> completeUpload(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody Map<String, String> body) {
@@ -39,11 +40,21 @@ public class FileController {
         return ResponseEntity.ok(ApiResponse.success("File uploaded successfully", file));
     }
 
-    @GetMapping("/{id}/download")
-    public ResponseEntity<ApiResponse<Map<String, String>>> getDownloadUrl(
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getFile(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String id) {
         Map<String, String> data = fileService.getDownloadUrl(userDetails.getUser().getId(), id);
-        return ResponseEntity.ok(ApiResponse.success(data));
+        Map<String, Object> response = new HashMap<>();
+        response.put("downloadUrl", data.get("url"));
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<FileResponse>> deleteFile(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String id) {
+        FileResponse file = fileService.softDeleteFile(userDetails.getUser().getId(), id);
+        return ResponseEntity.ok(ApiResponse.success("File deleted", file));
     }
 }
