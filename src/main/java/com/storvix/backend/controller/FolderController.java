@@ -1,0 +1,40 @@
+package com.storvix.backend.controller;
+
+import com.storvix.backend.dto.ApiResponse;
+import com.storvix.backend.dto.CreateFolderRequest;
+import com.storvix.backend.dto.FolderContentsResponse;
+import com.storvix.backend.dto.FolderResponse;
+import com.storvix.backend.entity.Folder;
+import com.storvix.backend.security.CustomUserDetails;
+import com.storvix.backend.service.FolderService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/folders")
+@RequiredArgsConstructor
+public class FolderController {
+
+    private final FolderService folderService;
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<FolderResponse>> createFolder(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody CreateFolderRequest request) {
+        Folder folder = folderService.createFolder(userDetails.getUser().getId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.created("Folder created", FolderResponse.from(folder)));
+    }
+
+    @GetMapping({"", "/{id}/contents"})
+    public ResponseEntity<ApiResponse<FolderContentsResponse>> getFolderContents(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable(required = false) String id) {
+        FolderContentsResponse contents = folderService.getFolderContents(userDetails.getUser().getId(), id);
+        return ResponseEntity.ok(ApiResponse.success(contents));
+    }
+}
