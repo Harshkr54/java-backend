@@ -11,4 +11,5 @@ public interface FolderRepository extends JpaRepository<Folder, String> {
     boolean existsByOwnerIdAndParentFolderIdAndNameAndIsDeletedFalse(String ownerId, String parentFolderId, String name);
     boolean existsByOwnerIdAndParentFolderIsNullAndNameAndIsDeletedFalse(String ownerId, String name);
     List<Folder> findByOwnerIdAndIsDeletedTrue(String ownerId);
+    long countByOwnerIdAndIsDeletedFalse(String ownerId);
 }

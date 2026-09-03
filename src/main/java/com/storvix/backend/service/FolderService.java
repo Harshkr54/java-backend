@@ -23,6 +23,7 @@ public class FolderService {
     private final FolderRepository folderRepository;
     private final FileRepository fileRepository;
     private final com.storvix.backend.repository.UserRepository userRepository;
+    private final ActivityService activityService;
 
     public List<Map<String, String>> buildBreadcrumb(String folderId, String ownerId) {
         List<Map<String, String>> crumbs = new ArrayList<>();
@@ -85,7 +86,10 @@ public class FolderService {
         }
         folder.setPath(buildPath(parentId));
         
-        return folderRepository.save(folder);
+        folder = folderRepository.save(folder);
+        activityService.logActivity(folder.getOwner(), "FOLDER_CREATED", "FOLDER", folder.getId());
+        
+        return folder;
     }
 
     public FolderContentsResponse getFolderContents(String userId, String folderId) {
@@ -151,7 +155,8 @@ public class FolderService {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         folder.setIsDeleted(true);
         folder.setDeletedAt(now);
-        folderRepository.save(folder);
+        folder = folderRepository.save(folder);
+        activityService.logActivity(folder.getOwner(), "FOLDER_MOVED_TO_TRASH", "FOLDER", folder.getId());
 
         List<String> descendants = collectDescendantFolderIds(folderId);
         List<String> allIds = new ArrayList<>();
@@ -199,7 +204,10 @@ public class FolderService {
 
         folder.setIsDeleted(false);
         folder.setDeletedAt(null);
-        return FolderResponse.from(folderRepository.save(folder));
+        folder = folderRepository.save(folder);
+        activityService.logActivity(folder.getOwner(), "FOLDER_RESTORED", "FOLDER", folder.getId());
+        
+        return FolderResponse.from(folder);
     }
 
     public Map<String, Boolean> permanentDeleteFolder(String userId, String folderId) {
@@ -221,6 +229,7 @@ public class FolderService {
         }
 
         folderRepository.delete(folder);
+        activityService.logActivity(folder.getOwner(), "FOLDER_DELETED_PERMANENTLY", "FOLDER", folderId);
         return Map.of("deleted", true);
     }
 }

@@ -25,6 +25,7 @@ public class FileService {
     private final FolderRepository folderRepository;
     private final UserRepository userRepository;
     private final S3StorageService s3StorageService;
+    private final ActivityService activityService;
 
     public Map<String, Object> initUpload(String userId, InitUploadRequest request) {
         User user = userRepository.findById(userId)
@@ -86,6 +87,8 @@ public class FileService {
         user.setStorageUsed(user.getStorageUsed() + file.getSize());
         userRepository.save(user);
         
+        activityService.logActivity(user, "FILE_UPLOADED", "FILE", file.getId());
+        
         return FileResponse.from(file);
     }
     
@@ -111,7 +114,11 @@ public class FileService {
 
         file.setIsDeleted(true);
         file.setDeletedAt(java.time.LocalDateTime.now());
-        return FileResponse.from(fileRepository.save(file));
+        file = fileRepository.save(file);
+        
+        activityService.logActivity(file.getOwner(), "FILE_MOVED_TO_TRASH", "FILE", file.getId());
+        
+        return FileResponse.from(file);
     }
 
     public FileResponse restoreFile(String userId, String fileId) {
@@ -131,7 +138,11 @@ public class FileService {
 
         file.setIsDeleted(false);
         file.setDeletedAt(null);
-        return FileResponse.from(fileRepository.save(file));
+        file = fileRepository.save(file);
+        
+        activityService.logActivity(file.getOwner(), "FILE_RESTORED", "FILE", file.getId());
+        
+        return FileResponse.from(file);
     }
 
     public Map<String, Boolean> permanentDeleteFile(String userId, String fileId) {
@@ -151,6 +162,8 @@ public class FileService {
         User user = file.getOwner();
         user.setStorageUsed(user.getStorageUsed() - size);
         userRepository.save(user);
+
+        activityService.logActivity(user, "FILE_DELETED_PERMANENTLY", "FILE", fileId);
 
         return Map.of("deleted", true);
     }

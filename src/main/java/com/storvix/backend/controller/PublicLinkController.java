@@ -46,6 +46,11 @@ public class PublicLinkController {
         if (password != null && !password.isEmpty()) {
             link.setPasswordHash(password); // Simplified for MVP, should be hashed
         }
+
+        String expiresAtStr = (String) request.get("expiresAt");
+        if (expiresAtStr != null && !expiresAtStr.isEmpty()) {
+            link.setExpiresAt(LocalDateTime.parse(expiresAtStr));
+        }
         
         if (fileId != null) {
             File file = fileRepository.findById(fileId).orElseThrow();
