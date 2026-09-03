@@ -23,6 +23,7 @@ public class FileResponse {
     private LocalDateTime updatedAt;
     private Boolean isDeleted;
     private Boolean isStarred;
+    private Integer versionNumber;
 
     @com.fasterxml.jackson.annotation.JsonProperty("_id")
     public String get_id() {
@@ -34,7 +35,7 @@ public class FileResponse {
                 .id(file.getId())
                 .name(file.getName())
                 .originalName(file.getOriginalName())
-                .ownerId(file.getOwner().getId())
+                .ownerId(file.getOwner() != null ? file.getOwner().getId() : null)
                 .folderId(file.getFolder() != null ? file.getFolder().getId() : null)
                 .storageKey(file.getStorageKey())
                 .mimeType(file.getMimeType())
@@ -45,6 +46,7 @@ public class FileResponse {
                 .createdAt(file.getCreatedAt())
                 .updatedAt(file.getUpdatedAt())
                 .isDeleted(file.getIsDeleted())
+                .versionNumber(file.getVersionNumber() != null ? file.getVersionNumber() : 1)
                 .build();
     }
 }

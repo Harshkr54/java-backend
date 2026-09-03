@@ -54,7 +54,7 @@ public class File {
     @Column(nullable = false)
     private String uploadStatus = "pending";
 
-    @Column(nullable = false)
+    @Column(name = "version_number", nullable = false, columnDefinition = "integer default 1")
     private Integer versionNumber = 1;
 
     @Column(nullable = false, updatable = false)
@@ -68,10 +68,23 @@ public class File {
         LocalDateTime now = LocalDateTime.now();
         createdAt = now;
         updatedAt = now;
+        if (versionNumber == null) {
+            versionNumber = 1;
+        }
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+        if (versionNumber == null) {
+            versionNumber = 1;
+        }
+    }
+
+    @PostLoad
+    protected void onPostLoad() {
+        if (versionNumber == null) {
+            versionNumber = 1;
+        }
     }
 }

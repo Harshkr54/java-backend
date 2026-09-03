@@ -1,9 +1,14 @@
 package com.storvix.backend.service;
 
+import com.storvix.backend.dto.ActivityResponse;
 import com.storvix.backend.dto.DashboardResponse;
+import com.storvix.backend.dto.FileResponse;
+import com.storvix.backend.dto.StarResponse;
 import com.storvix.backend.entity.User;
+import com.storvix.backend.exception.AppException;
 import com.storvix.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,11 +28,12 @@ public class DashboardService {
 
     @Transactional(readOnly = true)
     public DashboardResponse getDashboardData(String userId) {
-        User user = userRepository.findById(userId).orElseThrow();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException("User not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
 
         Map<String, Object> storage = new HashMap<>();
-        storage.put("used", user.getStorageUsed());
-        storage.put("quota", user.getStorageQuota());
+        storage.put("used", user.getStorageUsed() != null ? user.getStorageUsed() : 0L);
+        storage.put("quota", user.getStorageQuota() != null ? user.getStorageQuota() : 5368709120L);
 
         Map<String, Object> totals = new HashMap<>();
         totals.put("files", fileRepository.countByOwnerIdAndIsDeletedFalseAndUploadStatus(userId, "completed"));
@@ -37,9 +43,12 @@ public class DashboardService {
         return DashboardResponse.builder()
                 .storage(storage)
                 .totals(totals)
-                .recentFiles(fileRepository.findTop5ByOwnerIdAndIsDeletedFalseOrderByCreatedAtDesc(userId).stream().map(com.storvix.backend.dto.FileResponse::from).collect(Collectors.toList()))
-                .starred(starRepository.findByUserIdOrderByCreatedAtDesc(userId).stream().map(com.storvix.backend.dto.StarResponse::from).collect(Collectors.toList()))
-                .recentActivity(activityRepository.findByUserIdOrderByCreatedAtDesc(userId).stream().map(com.storvix.backend.dto.ActivityResponse::from).collect(Collectors.toList()))
+                .recentFiles(fileRepository.findTop5ByOwnerIdAndIsDeletedFalseOrderByCreatedAtDesc(userId)
+                        .stream().map(FileResponse::from).collect(Collectors.toList()))
+                .starred(starRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                        .stream().map(StarResponse::from).collect(Collectors.toList()))
+                .recentActivity(activityRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                        .stream().map(ActivityResponse::from).collect(Collectors.toList()))
                 .build();
     }
 }
