@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.storvix.backend.exception.AppException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -17,14 +18,26 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AiService {
 
     @Value("${gemini.api-key:}")
     private String geminiApiKey;
 
+    @Value("${gemini.model:gemini-2.5-flash}")
+    private String configuredModel;
+
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final DocumentExtractionService documentExtractionService;
+
+    private static final List<String> CANDIDATE_MODELS = List.of(
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash-latest",
+            "gemini-2.5-pro",
+            "gemini-1.5-pro"
+    );
 
     private static final String SYSTEM_SECURITY_PROMPT = """
             You are an expert AI Document Assistant built into Nimbus Cloud Storage.
@@ -38,36 +51,56 @@ public class AiService {
             """;
 
     public String callAiModel(String prompt, boolean jsonMode) {
-        if (geminiApiKey == null || geminiApiKey.isEmpty()) {
+        if (geminiApiKey == null || geminiApiKey.trim().isEmpty()) {
             throw new AppException("AI Provider key is missing", HttpStatus.INTERNAL_SERVER_ERROR, "AI_KEY_MISSING");
         }
 
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + geminiApiKey;
-
-        try {
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("contents", List.of(
-                    Map.of("parts", List.of(Map.of("text", prompt)))
-            ));
-
-            Map<String, Object> generationConfig = new HashMap<>();
-            generationConfig.put("temperature", 0.2);
-            generationConfig.put("maxOutputTokens", 2048);
-            if (jsonMode) {
-                generationConfig.put("responseMimeType", "application/json");
-            }
-            payload.put("generationConfig", generationConfig);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-
-            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-            JsonNode root = objectMapper.readTree(response.getBody());
-            return root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText("");
-        } catch (Exception e) {
-            throw new AppException("AI Processing Failed: " + e.getMessage(), HttpStatus.BAD_GATEWAY, "AI_SERVICE_ERROR");
+        List<String> modelsToTry = new ArrayList<>();
+        if (configuredModel != null && !configuredModel.trim().isEmpty()) {
+            modelsToTry.add(configuredModel.trim());
         }
+        for (String m : CANDIDATE_MODELS) {
+            if (!modelsToTry.contains(m)) {
+                modelsToTry.add(m);
+            }
+        }
+
+        Exception lastException = null;
+        for (String model : modelsToTry) {
+            try {
+                String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + geminiApiKey.trim();
+
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("contents", List.of(
+                        Map.of("parts", List.of(Map.of("text", prompt)))
+                ));
+
+                Map<String, Object> generationConfig = new HashMap<>();
+                generationConfig.put("temperature", 0.2);
+                generationConfig.put("maxOutputTokens", 2048);
+                if (jsonMode) {
+                    generationConfig.put("responseMimeType", "application/json");
+                }
+                payload.put("generationConfig", generationConfig);
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+
+                ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+                JsonNode root = objectMapper.readTree(response.getBody());
+                String text = root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText("");
+                if (text != null) {
+                    log.info("Successfully called Gemini model: {}", model);
+                    return text;
+                }
+            } catch (Exception e) {
+                log.warn("Gemini model {} generateContent failed: {}", model, e.getMessage());
+                lastException = e;
+            }
+        }
+
+        throw new AppException("AI Processing Failed: " + (lastException != null ? lastException.getMessage() : "All candidate models failed"), HttpStatus.BAD_GATEWAY, "AI_SERVICE_ERROR");
     }
 
     public Map<String, Object> summarizeDocument(byte[] buffer, String mimeType, String extension, String fileName) {
