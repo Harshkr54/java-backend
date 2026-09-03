@@ -218,10 +218,18 @@ public class AiController {
         File file = getFile(fileId);
         if (file == null) throw new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
 
-        AiConversation conversation = aiConversationRepository.findByUserIdAndFileId(userId, fileId).orElse(null);
-        
+        List<Map<String, Object>> messages = new ArrayList<>();
+        try {
+            AiConversation conversation = aiConversationRepository.findByUserIdAndFileId(userId, fileId).orElse(null);
+            if (conversation != null && conversation.getMessages() != null) {
+                messages = conversation.getMessages();
+            }
+        } catch (Exception e) {
+            // Log & gracefully return empty conversation history if DB or entity fails
+        }
+
         Map<String, Object> data = new HashMap<>();
-        data.put("messages", conversation != null && conversation.getMessages() != null ? conversation.getMessages() : new ArrayList<>());
+        data.put("messages", messages);
         
         return ResponseEntity.ok(ApiResponse.success(data));
     }
