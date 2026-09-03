@@ -50,6 +50,16 @@ public class FileController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<FileResponse>> renameFile(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String id,
+            @RequestBody Map<String, String> body) {
+        String name = body.get("name");
+        FileResponse file = fileService.renameFile(userDetails.getUser().getId(), id, name);
+        return ResponseEntity.ok(ApiResponse.success("File renamed", file));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<FileResponse>> deleteFile(
             @AuthenticationPrincipal CustomUserDetails userDetails,

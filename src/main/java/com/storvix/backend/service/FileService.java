@@ -146,6 +146,26 @@ public class FileService {
         return FileResponse.from(file);
     }
 
+    public FileResponse renameFile(String userId, String fileId, String newName) {
+        File file = fileRepository.findById(fileId)
+                .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+
+        if (!file.getOwner().getId().equals(userId)) {
+            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
+        }
+
+        if (newName == null || newName.trim().isEmpty()) {
+            throw new AppException("File name cannot be empty", HttpStatus.BAD_REQUEST, "VALIDATION_ERROR");
+        }
+
+        file.setName(newName.trim());
+        file = fileRepository.save(file);
+
+        activityService.logActivity(file.getOwner(), "FILE_RENAMED", "FILE", file.getId());
+
+        return FileResponse.from(file);
+    }
+
     public Map<String, Boolean> permanentDeleteFile(String userId, String fileId) {
         File file = fileRepository.findById(fileId)
                 .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));

@@ -231,6 +231,26 @@ public class FolderService {
         return FolderResponse.from(folder);
     }
 
+    public FolderResponse renameFolder(String userId, String folderId, String newName) {
+        Folder folder = folderRepository.findById(folderId)
+                .orElseThrow(() -> new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+
+        if (!folder.getOwner().getId().equals(userId)) {
+            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
+        }
+
+        if (newName == null || newName.trim().isEmpty()) {
+            throw new AppException("Folder name cannot be empty", HttpStatus.BAD_REQUEST, "VALIDATION_ERROR");
+        }
+
+        folder.setName(newName.trim());
+        folder = folderRepository.save(folder);
+
+        activityService.logActivity(folder.getOwner(), "FOLDER_RENAMED", "FOLDER", folder.getId());
+
+        return FolderResponse.from(folder);
+    }
+
     public Map<String, Boolean> permanentDeleteFolder(String userId, String folderId) {
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));

@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/folders")
@@ -44,6 +45,16 @@ public class FolderController {
             @PathVariable(required = false) String id) {
         FolderContentsResponse contents = folderService.getFolderContents(userDetails.getUser().getId(), id);
         return ResponseEntity.ok(ApiResponse.success(contents));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<FolderResponse>> renameFolder(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String id,
+            @RequestBody Map<String, String> body) {
+        String name = body.get("name");
+        FolderResponse folder = folderService.renameFolder(userDetails.getUser().getId(), id, name);
+        return ResponseEntity.ok(ApiResponse.success("Folder renamed", folder));
     }
 
     @DeleteMapping("/{id}")
