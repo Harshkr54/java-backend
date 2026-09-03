@@ -59,8 +59,13 @@ public class SearchService {
             }
         }
 
+        List<Map<String, Object>> fileItems = items.stream().filter(i -> "file".equals(i.get("resourceType"))).toList();
+        List<Map<String, Object>> folderItems = items.stream().filter(i -> "folder".equals(i.get("resourceType"))).toList();
+
         Map<String, Object> result = new HashMap<>();
         result.put("items", items);
+        result.put("files", fileItems);
+        result.put("folders", folderItems);
         result.put("total", items.size());
         return result;
     }
