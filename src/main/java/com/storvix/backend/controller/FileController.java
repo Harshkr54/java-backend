@@ -43,8 +43,9 @@ public class FileController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getFile(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable String id) {
-        Map<String, String> data = fileService.getDownloadUrl(userDetails.getUser().getId(), id);
+            @PathVariable String id,
+            @RequestParam(required = false, defaultValue = "false") boolean preview) {
+        Map<String, String> data = fileService.getDownloadUrl(userDetails.getUser().getId(), id, preview);
         Map<String, Object> response = new HashMap<>();
         response.put("downloadUrl", data.get("url"));
         return ResponseEntity.ok(ApiResponse.success(response));

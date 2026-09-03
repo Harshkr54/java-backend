@@ -93,16 +93,21 @@ public class FileService {
         return FileResponse.from(file);
     }
     
-    public Map<String, String> getDownloadUrl(String userId, String fileId) {
+    public Map<String, String> getDownloadUrl(String userId, String fileId, boolean isPreview) {
         File file = fileRepository.findById(fileId)
                 .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
         
-        String contentDisposition = "attachment; filename=\"" + file.getOriginalName() + "\"";
+        String dispositionType = isPreview ? "inline" : "attachment";
+        String contentDisposition = dispositionType + "; filename=\"" + file.getOriginalName() + "\"";
         String downloadUrl = s3StorageService.generateDownloadUrl(file.getStorageKey(), file.getMimeType(), contentDisposition);
         
         Map<String, String> result = new HashMap<>();
         result.put("url", downloadUrl);
         return result;
+    }
+
+    public Map<String, String> getDownloadUrl(String userId, String fileId) {
+        return getDownloadUrl(userId, fileId, false);
     }
 
     public FileResponse softDeleteFile(String userId, String fileId) {
