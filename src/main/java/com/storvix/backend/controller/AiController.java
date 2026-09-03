@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/ai")
+@RequestMapping({"/api/ai/files", "/api/ai"})
 @RequiredArgsConstructor
 public class AiController {
 
