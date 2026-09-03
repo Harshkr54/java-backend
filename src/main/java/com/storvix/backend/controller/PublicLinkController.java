@@ -78,7 +78,7 @@ public class PublicLinkController {
         boolean emailSent = false;
         if (recipientEmail != null && !recipientEmail.trim().isEmpty()) {
             try {
-                emailService.sendPublicLinkEmail(
+                emailSent = emailService.sendPublicLinkEmail(
                         recipientEmail.trim(),
                         null,
                         userDetails.getUser().getName(),
@@ -86,7 +86,6 @@ public class PublicLinkController {
                         resourceType,
                         saved.getToken()
                 );
-                emailSent = true;
             } catch (Exception e) {
                 // Log email error gracefully
             }
@@ -195,7 +194,7 @@ public class PublicLinkController {
         boolean emailSent = false;
         if (recipientEmail != null && !recipientEmail.trim().isEmpty()) {
             try {
-                emailService.sendPublicLinkEmail(
+                emailSent = emailService.sendPublicLinkEmail(
                         recipientEmail.trim(),
                         null,
                         userDetails.getUser().getName(),
@@ -203,7 +202,6 @@ public class PublicLinkController {
                         resourceType,
                         link.getToken()
                 );
-                emailSent = true;
             } catch (Exception e) {
                 // Log email error
             }

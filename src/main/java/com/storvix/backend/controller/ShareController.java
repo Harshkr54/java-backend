@@ -39,7 +39,7 @@ public class ShareController {
                 .body(ApiResponse.success((String) result.get("message"), result));
     }
 
-    @GetMapping("/resource/{resourceId}")
+    @GetMapping({"/{resourceId}", "/resource/{resourceId}"})
     public ResponseEntity<ApiResponse<List<ShareResponse>>> listShares(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String resourceId) {
