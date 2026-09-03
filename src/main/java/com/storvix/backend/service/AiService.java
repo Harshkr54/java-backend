@@ -33,10 +33,7 @@ public class AiService {
 
     private static final List<String> CANDIDATE_MODELS = List.of(
             "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-2.5-pro",
-            "gemini-1.5-pro"
+            "gemini-2.5-pro"
     );
 
     private static final String SYSTEM_SECURITY_PROMPT = """
@@ -94,6 +91,10 @@ public class AiService {
                     log.info("Successfully called Gemini model: {}", model);
                     return text;
                 }
+            } catch (org.springframework.web.client.HttpStatusCodeException e) {
+                String responseBody = e.getResponseBodyAsString();
+                log.warn("Gemini model {} generateContent HTTP {} failed: {}", model, e.getStatusCode(), responseBody);
+                lastException = new RuntimeException(e.getStatusCode() + ": " + responseBody);
             } catch (Exception e) {
                 log.warn("Gemini model {} generateContent failed: {}", model, e.getMessage());
                 lastException = e;
