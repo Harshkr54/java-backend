@@ -11,7 +11,7 @@ import java.util.Map;
 public class DashboardResponse {
     private Map<String, Object> storage;
     private Map<String, Object> totals;
-    private List<Object> recentFiles;
-    private List<Object> starred;
-    private List<Object> recentActivity;
+    private List<FileResponse> recentFiles;
+    private List<StarResponse> starred;
+    private List<ActivityResponse> recentActivity;
 }

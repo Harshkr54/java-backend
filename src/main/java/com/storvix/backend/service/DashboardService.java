@@ -37,9 +37,9 @@ public class DashboardService {
         return DashboardResponse.builder()
                 .storage(storage)
                 .totals(totals)
-                .recentFiles(fileRepository.findTop5ByOwnerIdAndIsDeletedFalseOrderByCreatedAtDesc(userId).stream().map(f -> (Object) f).collect(Collectors.toList()))
-                .starred(starRepository.findByUserIdOrderByCreatedAtDesc(userId).stream().map(s -> (Object) s).collect(Collectors.toList()))
-                .recentActivity(activityRepository.findByUserIdOrderByCreatedAtDesc(userId).stream().map(a -> (Object) a).collect(Collectors.toList()))
+                .recentFiles(fileRepository.findTop5ByOwnerIdAndIsDeletedFalseOrderByCreatedAtDesc(userId).stream().map(com.storvix.backend.dto.FileResponse::from).collect(Collectors.toList()))
+                .starred(starRepository.findByUserIdOrderByCreatedAtDesc(userId).stream().map(com.storvix.backend.dto.StarResponse::from).collect(Collectors.toList()))
+                .recentActivity(activityRepository.findByUserIdOrderByCreatedAtDesc(userId).stream().map(com.storvix.backend.dto.ActivityResponse::from).collect(Collectors.toList()))
                 .build();
     }
 }

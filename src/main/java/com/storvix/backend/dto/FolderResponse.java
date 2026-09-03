@@ -17,6 +17,11 @@ public class FolderResponse {
     private LocalDateTime updatedAt;
     private Boolean isDeleted;
 
+    @com.fasterxml.jackson.annotation.JsonProperty("_id")
+    public String get_id() {
+        return id;
+    }
+
     public static FolderResponse from(Folder folder) {
         return FolderResponse.builder()
                 .id(folder.getId())

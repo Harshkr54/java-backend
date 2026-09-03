@@ -23,6 +23,11 @@ public class FileResponse {
     private LocalDateTime updatedAt;
     private Boolean isDeleted;
 
+    @com.fasterxml.jackson.annotation.JsonProperty("_id")
+    public String get_id() {
+        return id;
+    }
+
     public static FileResponse from(File file) {
         return FileResponse.builder()
                 .id(file.getId())
