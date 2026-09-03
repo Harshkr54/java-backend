@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface ActivityRepository extends JpaRepository<Activity, String> {
     List<Activity> findByUserIdOrderByCreatedAtDesc(String userId);
+    List<Activity> findTop10ByUserIdOrderByCreatedAtDesc(String userId);
 }

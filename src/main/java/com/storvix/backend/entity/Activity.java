@@ -11,7 +11,9 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 @Entity
-@Table(name = "activities")
+@Table(name = "activities", indexes = {
+    @Index(name = "idx_activities_user_created", columnList = "user_id, created_at DESC")
+})
 @Getter
 @Setter
 @NoArgsConstructor

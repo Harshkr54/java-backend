@@ -117,15 +117,8 @@ public class FolderService {
 
         List<Map<String, String>> breadcrumb = buildBreadcrumb(folderId, userId);
 
-        List<Star> userStars = starRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        Set<String> starredFolderIds = userStars.stream()
-                .filter(s -> s.getFolder() != null)
-                .map(s -> s.getFolder().getId())
-                .collect(Collectors.toSet());
-        Set<String> starredFileIds = userStars.stream()
-                .filter(s -> s.getFile() != null)
-                .map(s -> s.getFile().getId())
-                .collect(Collectors.toSet());
+        Set<String> starredFolderIds = starRepository.findStarredFolderIdsByUserId(userId);
+        Set<String> starredFileIds = starRepository.findStarredFileIdsByUserId(userId);
 
         return FolderContentsResponse.builder()
                 .folders(folders.stream().map(f -> {

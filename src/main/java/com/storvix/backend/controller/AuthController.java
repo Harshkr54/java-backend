@@ -33,8 +33,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> me(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = authService.getMe(userDetails.getUser().getId());
-        return ResponseEntity.ok(ApiResponse.success(UserResponse.from(user)));
+        return ResponseEntity.ok(ApiResponse.success(UserResponse.from(userDetails.getUser())));
     }
 
     @PostMapping("/logout")

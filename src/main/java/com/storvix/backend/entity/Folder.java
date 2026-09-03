@@ -8,7 +8,10 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "folders")
+@Table(name = "folders", indexes = {
+    @Index(name = "idx_folders_owner_parent_deleted", columnList = "owner_id, parent_folder_id, is_deleted"),
+    @Index(name = "idx_folders_parent_deleted", columnList = "parent_folder_id, is_deleted")
+})
 @Getter
 @Setter
 @NoArgsConstructor

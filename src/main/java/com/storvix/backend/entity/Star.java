@@ -11,6 +11,10 @@ import java.time.LocalDateTime;
 @Table(name = "stars", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"user_id", "file_id"}),
     @UniqueConstraint(columnNames = {"user_id", "folder_id"})
+}, indexes = {
+    @Index(name = "idx_stars_user_file", columnList = "user_id, file_id"),
+    @Index(name = "idx_stars_user_folder", columnList = "user_id, folder_id"),
+    @Index(name = "idx_stars_user_created", columnList = "user_id, created_at DESC")
 })
 @Getter
 @Setter

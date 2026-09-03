@@ -8,7 +8,11 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "files")
+@Table(name = "files", indexes = {
+    @Index(name = "idx_files_owner_folder_deleted", columnList = "owner_id, folder_id, is_deleted, upload_status"),
+    @Index(name = "idx_files_folder_deleted", columnList = "folder_id, is_deleted, upload_status"),
+    @Index(name = "idx_files_owner_created", columnList = "owner_id, is_deleted, created_at DESC")
+})
 @Getter
 @Setter
 @NoArgsConstructor

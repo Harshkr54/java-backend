@@ -28,7 +28,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getStorageInfo(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         
-        User user = userRepository.findById(userDetails.getUser().getId()).orElseThrow();
+        User user = userDetails.getUser();
         
         Map<String, Object> storageData = new HashMap<>();
         // AppShell expects these
@@ -50,8 +50,7 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getMe(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userRepository.findById(userDetails.getUser().getId()).orElseThrow();
-        return ResponseEntity.ok(ApiResponse.success(UserResponse.from(user)));
+        return ResponseEntity.ok(ApiResponse.success(UserResponse.from(userDetails.getUser())));
     }
 
     @PatchMapping("/me")

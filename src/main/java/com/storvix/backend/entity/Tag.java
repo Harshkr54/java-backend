@@ -12,6 +12,8 @@ import java.util.Set;
 @Entity
 @Table(name = "tags", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"owner_id", "name"})
+}, indexes = {
+    @Index(name = "idx_tags_owner_name", columnList = "owner_id, name")
 })
 @Getter
 @Setter

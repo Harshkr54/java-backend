@@ -45,9 +45,9 @@ public class DashboardService {
                 .totals(totals)
                 .recentFiles(fileRepository.findTop5ByOwnerIdAndIsDeletedFalseOrderByCreatedAtDesc(userId)
                         .stream().map(FileResponse::from).collect(Collectors.toList()))
-                .starred(starRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .starred(starRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId)
                         .stream().map(StarResponse::from).collect(Collectors.toList()))
-                .recentActivity(activityRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .recentActivity(activityRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId)
                         .stream().map(ActivityResponse::from).collect(Collectors.toList()))
                 .build();
     }
