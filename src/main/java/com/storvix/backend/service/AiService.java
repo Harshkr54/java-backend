@@ -42,7 +42,7 @@ public class AiService {
             throw new AppException("AI Provider key is missing", HttpStatus.INTERNAL_SERVER_ERROR, "AI_KEY_MISSING");
         }
 
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiApiKey;
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + geminiApiKey;
 
         try {
             Map<String, Object> payload = new HashMap<>();
