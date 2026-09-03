@@ -29,6 +29,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final UserRepository userRepository;
     private final OAuthCodeRepository oAuthCodeRepository;
+    private final HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -79,6 +80,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         oAuthCode.setExpiresAt(LocalDateTime.now().plusSeconds(60));
         oAuthCode.setIsUsed(false);
         oAuthCodeRepository.save(oAuthCode);
+
+        // Clear OAuth authorization request cookies
+        cookieAuthorizationRequestRepository.removeAuthorizationRequestCookies(request, response);
 
         // Redirect with ONLY the temporary one-time exchange code (ZERO JWT IN URL)
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth/callback")
