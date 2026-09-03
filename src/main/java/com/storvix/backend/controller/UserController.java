@@ -7,7 +7,10 @@ import com.storvix.backend.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.storvix.backend.dto.UserResponse;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,5 +45,24 @@ public class UserController {
         storageData.put("percentage", percentage);
 
         return ResponseEntity.ok(ApiResponse.success(storageData));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> getMe(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userRepository.findById(userDetails.getUser().getId()).orElseThrow();
+        return ResponseEntity.ok(ApiResponse.success(UserResponse.from(user)));
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody Map<String, String> payload) {
+        User user = userRepository.findById(userDetails.getUser().getId()).orElseThrow();
+        if (payload.containsKey("name") && payload.get("name") != null && !payload.get("name").trim().isEmpty()) {
+            user.setName(payload.get("name").trim());
+            user = userRepository.save(user);
+        }
+        return ResponseEntity.ok(ApiResponse.success("Profile updated", UserResponse.from(user)));
     }
 }
