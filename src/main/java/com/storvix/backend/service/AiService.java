@@ -24,7 +24,7 @@ public class AiService {
     @Value("${gemini.api-key:}")
     private String geminiApiKey;
 
-    @Value("${gemini.model:gemini-2.5-flash}")
+    @Value("${gemini.model:gemini-3.5-flash}")
     private String configuredModel;
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -32,8 +32,7 @@ public class AiService {
     private final DocumentExtractionService documentExtractionService;
 
     private static final List<String> CANDIDATE_MODELS = List.of(
-            "gemini-2.5-flash",
-            "gemini-2.5-pro"
+            "gemini-3.5-flash"
     );
 
     private static final String SYSTEM_SECURITY_PROMPT = """
