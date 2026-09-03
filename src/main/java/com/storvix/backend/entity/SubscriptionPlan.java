@@ -8,48 +8,33 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "subscription_plans")
 @Getter
 @Setter
 @NoArgsConstructor
-public class User {
+public class SubscriptionPlan {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String id; // Use String UUID to match MongoDB ObjectId / UUID
-
-    @Column(nullable = false, length = 100)
-    private String name;
+    private String id;
 
     @Column(nullable = false, unique = true)
-    private String email;
-
-    private String password;
-
-    private String avatar;
+    private String name; // e.g. "Basic", "Premium"
 
     @Column(nullable = false)
-    private String provider = "LOCAL";
-
-    private String googleId;
+    private String description;
 
     @Column(nullable = false)
-    private String role = "USER";
+    private Long storageQuotaBytes;
 
     @Column(nullable = false)
-    private Long storageUsed = 0L;
+    private Long priceInPaise; // e.g. 19900 = ₹199
 
     @Column(nullable = false)
-    private Long storageQuota = 5368709120L; // Match env.defaultStorageQuota (5GB)
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subscription_plan_id")
-    private SubscriptionPlan currentPlan;
+    private String currency = "INR";
 
     @Column(nullable = false)
-    private Boolean isActive = true;
-
-    private String refreshTokenHash;
+    private Boolean active = true;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

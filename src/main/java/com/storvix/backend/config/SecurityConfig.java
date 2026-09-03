@@ -28,7 +28,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> {})
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/public-links/**", "/oauth2/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/public-links/**", "/api/subscriptions/plans", "/api/payments/webhook", "/oauth2/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
