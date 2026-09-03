@@ -1,6 +1,8 @@
 package com.storvix.backend.security;
 
+import com.storvix.backend.entity.OAuthCode;
 import com.storvix.backend.entity.User;
+import com.storvix.backend.repository.OAuthCodeRepository;
 import com.storvix.backend.repository.UserRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,23 +10,25 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final OAuthCodeRepository oAuthCodeRepository;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -37,7 +41,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         String picture = oAuth2User.getAttribute("picture");
         String googleId = oAuth2User.getAttribute("sub");
 
-        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (email == null || email.trim().isEmpty()) {
+            getRedirectStrategy().sendRedirect(request, response, frontendUrl + "/login?error=email_missing");
+            return;
+        }
+
+        String normalizedEmail = email.toLowerCase().trim();
+        Optional<User> userOptional = userRepository.findByEmail(normalizedEmail);
         User user;
         if (userOptional.isPresent()) {
             user = userOptional.get();
@@ -47,24 +57,50 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             }
         } else {
             user = new User();
-            user.setEmail(email);
-            user.setName(name);
+            user.setEmail(normalizedEmail);
+            user.setName(name != null ? name : "Google User");
             user.setAvatar(picture);
             user.setProvider("GOOGLE");
             user.setGoogleId(googleId);
         }
-        
-        String refreshToken = jwtUtil.generateRefreshToken(user.getId());
-        user.setRefreshTokenHash(passwordEncoder.encode(refreshToken));
-        userRepository.save(user);
+        user = userRepository.save(user);
 
-        String accessToken = jwtUtil.generateToken(user.getId());
+        // Generate 32-byte cryptographically secure random token
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
+        String rawCode = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 
+        // Hash code using SHA-256 before saving to DB
+        String codeHash = hashOAuthCode(rawCode);
+        OAuthCode oAuthCode = new OAuthCode();
+        oAuthCode.setCodeHash(codeHash);
+        oAuthCode.setUserId(user.getId());
+        oAuthCode.setExpiresAt(LocalDateTime.now().plusSeconds(60));
+        oAuthCode.setIsUsed(false);
+        oAuthCodeRepository.save(oAuthCode);
+
+        // Redirect with ONLY the temporary one-time exchange code (ZERO JWT IN URL)
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth/callback")
-                .queryParam("accessToken", accessToken)
-                .queryParam("refreshToken", refreshToken)
+                .queryParam("code", rawCode)
                 .build().toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
+    }
+
+    private String hashOAuthCode(String code) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(code.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 missing", e);
+        }
     }
 }

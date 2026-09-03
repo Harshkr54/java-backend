@@ -48,4 +48,11 @@ public class AuthController {
         AuthResponse response = authService.refreshTokens(request.getRefreshToken());
         return ResponseEntity.ok(ApiResponse.success("Token refreshed", response));
     }
+
+    @PostMapping("/oauth/exchange")
+    public ResponseEntity<ApiResponse<AuthResponse>> exchangeOAuthCode(@RequestBody java.util.Map<String, String> body) {
+        String code = body.get("code");
+        AuthResponse response = authService.exchangeOAuthCode(code);
+        return ResponseEntity.ok(ApiResponse.success("OAuth exchange successful", response));
+    }
 }

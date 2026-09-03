@@ -21,6 +21,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final com.storvix.backend.repository.OAuthCodeRepository oAuthCodeRepository;
 
     private AuthResponse buildTokens(User user) {
         String accessToken = jwtUtil.generateToken(user.getId());
@@ -36,18 +37,67 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request) {
-        Optional<User> existing = userRepository.findByEmail(request.getEmail().toLowerCase());
-        if (existing.isPresent()) {
-            throw new AppException("Email already registered", HttpStatus.CONFLICT, "DUPLICATE_EMAIL");
+        String name = request.getName() != null ? request.getName().trim() : "";
+        if (name.matches("^[0-9\\s]+$") || name.matches("^[!@#$%^&*()_+=\\-\\[\\]{};:'\",.<>/?\\\\]+$") || !name.matches(".*[A-Za-z].*")) {
+            throw new AppException("Please enter a valid full name.", HttpStatus.BAD_REQUEST, "VALIDATION_ERROR");
         }
+
+        if (request.getConfirmPassword() == null || !request.getPassword().equals(request.getConfirmPassword())) {
+            throw new AppException("Passwords do not match.", HttpStatus.BAD_REQUEST, "VALIDATION_ERROR");
+        }
+
+        String normalizedEmail = request.getEmail().toLowerCase().trim();
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new AppException("An account with this email already exists.", HttpStatus.CONFLICT, "DUPLICATE_EMAIL");
+        }
+
         User user = new User();
-        user.setName(request.getName());
-        user.setEmail(request.getEmail().toLowerCase());
+        user.setName(name);
+        user.setEmail(normalizedEmail);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setProvider("LOCAL");
         userRepository.save(user);
         
         return buildTokens(user);
+    }
+
+    public AuthResponse exchangeOAuthCode(String rawCode) {
+        if (rawCode == null || rawCode.trim().isEmpty()) {
+            throw new AppException("Invalid OAuth code", HttpStatus.BAD_REQUEST, "INVALID_CODE");
+        }
+        String codeHash = hashOAuthCode(rawCode.trim());
+        com.storvix.backend.entity.OAuthCode oauthCode = oAuthCodeRepository.findByCodeHashAndIsUsedFalse(codeHash)
+                .orElseThrow(() -> new AppException("Invalid or expired OAuth code", HttpStatus.BAD_REQUEST, "INVALID_CODE"));
+
+        if (oauthCode.getExpiresAt().isBefore(java.time.LocalDateTime.now())) {
+            oauthCode.setIsUsed(true);
+            oAuthCodeRepository.save(oauthCode);
+            throw new AppException("OAuth code has expired", HttpStatus.BAD_REQUEST, "EXPIRED_CODE");
+        }
+
+        oauthCode.setIsUsed(true);
+        oAuthCodeRepository.save(oauthCode);
+
+        User user = userRepository.findById(oauthCode.getUserId())
+                .orElseThrow(() -> new AppException("User not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+
+        return buildTokens(user);
+    }
+
+    private String hashOAuthCode(String code) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(code.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 missing", e);
+        }
     }
 
     public AuthResponse login(LoginRequest request) {

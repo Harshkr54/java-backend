@@ -18,12 +18,11 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        String msg = ex.getBindingResult().getFieldErrors().stream()
-                .map(err -> err.getField() + ": " + err.getDefaultMessage())
-                .findFirst().orElse("Validation failed");
+    public ResponseEntity<ApiResponse<java.util.Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        java.util.Map<String, String> errors = new java.util.HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(err -> errors.put(err.getField(), err.getDefaultMessage()));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.fail(msg, "VALIDATION_ERROR"));
+                .body(ApiResponse.fail("Validation failed", "VALIDATION_ERROR", errors));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
