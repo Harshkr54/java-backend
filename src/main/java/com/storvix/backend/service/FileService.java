@@ -1,12 +1,15 @@
 package com.storvix.backend.service;
 
 import com.storvix.backend.dto.FileResponse;
+import com.storvix.backend.dto.FileRevisionResponse;
 import com.storvix.backend.dto.InitUploadRequest;
 import com.storvix.backend.entity.File;
+import com.storvix.backend.entity.FileRevision;
 import com.storvix.backend.entity.Folder;
 import com.storvix.backend.entity.User;
 import com.storvix.backend.exception.AppException;
 import com.storvix.backend.repository.FileRepository;
+import com.storvix.backend.repository.FileRevisionRepository;
 import com.storvix.backend.repository.FolderRepository;
 import com.storvix.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,6 +26,7 @@ import java.util.UUID;
 public class FileService {
 
     private final FileRepository fileRepository;
+    private final FileRevisionRepository fileRevisionRepository;
     private final FolderRepository folderRepository;
     private final UserRepository userRepository;
     private final S3StorageService s3StorageService;
@@ -179,9 +184,6 @@ public class FileService {
             throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
         }
 
-        // Ideally, delete from S3 here using S3StorageService (would need delete method).
-        // Since it's a migration and the user asked for logic parity, we just delete from DB and deduct quota.
-        
         Long size = file.getSize() != null ? file.getSize() : 0L;
         fileRepository.delete(file);
         
@@ -192,5 +194,62 @@ public class FileService {
         activityService.logActivity(user, "FILE_DELETED_PERMANENTLY", "FILE", fileId);
 
         return Map.of("deleted", true);
+    }
+
+    public List<FileRevisionResponse> getFileRevisions(String userId, String fileId) {
+        File file = fileRepository.findById(fileId)
+                .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+
+        List<FileRevision> revisions = fileRevisionRepository.findByFileIdOrderByVersionNumberDesc(fileId);
+        return revisions.stream().map(FileRevisionResponse::from).toList();
+    }
+
+    public Map<String, String> getRevisionDownloadUrl(String userId, String fileId, String revisionId) {
+        File file = fileRepository.findById(fileId)
+                .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+
+        FileRevision revision = fileRevisionRepository.findByFileIdAndId(fileId, revisionId)
+                .orElseThrow(() -> new AppException("Revision not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+
+        String contentDisposition = "attachment; filename=\"" + revision.getOriginalName() + "\"";
+        String downloadUrl = s3StorageService.generateDownloadUrl(revision.getStorageKey(), revision.getMimeType(), contentDisposition);
+
+        Map<String, String> result = new HashMap<>();
+        result.put("url", downloadUrl);
+        return result;
+    }
+
+    public FileResponse restoreFileRevision(String userId, String fileId, String revisionId) {
+        File file = fileRepository.findById(fileId)
+                .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+
+        if (!file.getOwner().getId().equals(userId)) {
+            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
+        }
+
+        FileRevision revision = fileRevisionRepository.findByFileIdAndId(fileId, revisionId)
+                .orElseThrow(() -> new AppException("Revision not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+
+        // Archive current active state
+        FileRevision currentRevision = new FileRevision();
+        currentRevision.setFile(file);
+        currentRevision.setVersionNumber(file.getVersionNumber());
+        currentRevision.setStorageKey(file.getStorageKey());
+        currentRevision.setOriginalName(file.getOriginalName());
+        currentRevision.setMimeType(file.getMimeType());
+        currentRevision.setSize(file.getSize());
+        fileRevisionRepository.save(currentRevision);
+
+        // Restore old revision active properties
+        file.setVersionNumber(file.getVersionNumber() + 1);
+        file.setStorageKey(revision.getStorageKey());
+        file.setSize(revision.getSize());
+        file.setMimeType(revision.getMimeType());
+        file.setOriginalName(revision.getOriginalName());
+        file = fileRepository.save(file);
+
+        activityService.logActivity(file.getOwner(), "FILE_REVISION_RESTORED", "FILE", file.getId());
+
+        return FileResponse.from(file);
     }
 }

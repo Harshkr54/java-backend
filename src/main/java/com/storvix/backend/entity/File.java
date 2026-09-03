@@ -54,6 +54,9 @@ public class File {
     @Column(nullable = false)
     private String uploadStatus = "pending";
 
+    @Column(nullable = false)
+    private Integer versionNumber = 1;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

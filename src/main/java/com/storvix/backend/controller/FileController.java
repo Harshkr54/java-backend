@@ -68,4 +68,30 @@ public class FileController {
         FileResponse file = fileService.softDeleteFile(userDetails.getUser().getId(), id);
         return ResponseEntity.ok(ApiResponse.success("File deleted", file));
     }
+
+    @GetMapping("/{id}/revisions")
+    public ResponseEntity<ApiResponse<java.util.List<com.storvix.backend.dto.FileRevisionResponse>>> getFileRevisions(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String id) {
+        java.util.List<com.storvix.backend.dto.FileRevisionResponse> revisions = fileService.getFileRevisions(userDetails.getUser().getId(), id);
+        return ResponseEntity.ok(ApiResponse.success(revisions));
+    }
+
+    @GetMapping("/{id}/revisions/{revisionId}/download")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getRevisionDownloadUrl(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String id,
+            @PathVariable String revisionId) {
+        Map<String, String> data = fileService.getRevisionDownloadUrl(userDetails.getUser().getId(), id, revisionId);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    @PostMapping("/{id}/revisions/{revisionId}/restore")
+    public ResponseEntity<ApiResponse<FileResponse>> restoreFileRevision(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String id,
+            @PathVariable String revisionId) {
+        FileResponse file = fileService.restoreFileRevision(userDetails.getUser().getId(), id, revisionId);
+        return ResponseEntity.ok(ApiResponse.success("Version restored successfully", file));
+    }
 }
