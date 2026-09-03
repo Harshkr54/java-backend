@@ -22,6 +22,7 @@ public class FileResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Boolean isDeleted;
+    private Boolean isStarred;
 
     @com.fasterxml.jackson.annotation.JsonProperty("_id")
     public String get_id() {

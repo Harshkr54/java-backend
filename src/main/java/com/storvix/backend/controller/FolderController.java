@@ -45,4 +45,20 @@ public class FolderController {
         FolderContentsResponse contents = folderService.getFolderContents(userDetails.getUser().getId(), id);
         return ResponseEntity.ok(ApiResponse.success(contents));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<FolderResponse>> deleteFolder(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String id) {
+
+        FolderResponse folder =
+                folderService.softDeleteFolder(
+                        userDetails.getUser().getId(),
+                        id
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Folder moved to trash", folder)
+        );
+    }
 }

@@ -30,7 +30,7 @@ public class DashboardService {
         storage.put("quota", user.getStorageQuota());
 
         Map<String, Object> totals = new HashMap<>();
-        totals.put("files", fileRepository.countByOwnerIdAndIsDeletedFalse(userId));
+        totals.put("files", fileRepository.countByOwnerIdAndIsDeletedFalseAndUploadStatus(userId, "completed"));
         totals.put("folders", folderRepository.countByOwnerIdAndIsDeletedFalse(userId));
         totals.put("starred", starRepository.countByUserId(userId));
 

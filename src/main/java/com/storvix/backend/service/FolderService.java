@@ -9,6 +9,8 @@ import com.storvix.backend.entity.Folder;
 import com.storvix.backend.exception.AppException;
 import com.storvix.backend.repository.FileRepository;
 import com.storvix.backend.repository.FolderRepository;
+import com.storvix.backend.repository.StarRepository;
+import com.storvix.backend.entity.Star;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ public class FolderService {
     private final FileRepository fileRepository;
     private final com.storvix.backend.repository.UserRepository userRepository;
     private final ActivityService activityService;
+    private final StarRepository starRepository;
 
     public List<Map<String, String>> buildBreadcrumb(String folderId, String ownerId) {
         List<Map<String, String>> crumbs = new ArrayList<>();
@@ -111,9 +114,27 @@ public class FolderService {
 
         List<Map<String, String>> breadcrumb = buildBreadcrumb(folderId, userId);
 
+        List<Star> userStars = starRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        Set<String> starredFolderIds = userStars.stream()
+                .filter(s -> s.getFolder() != null)
+                .map(s -> s.getFolder().getId())
+                .collect(Collectors.toSet());
+        Set<String> starredFileIds = userStars.stream()
+                .filter(s -> s.getFile() != null)
+                .map(s -> s.getFile().getId())
+                .collect(Collectors.toSet());
+
         return FolderContentsResponse.builder()
-                .folders(folders.stream().map(FolderResponse::from).collect(Collectors.toList()))
-                .files(files.stream().map(com.storvix.backend.dto.FileResponse::from).collect(Collectors.toList()))
+                .folders(folders.stream().map(f -> {
+                    FolderResponse fr = FolderResponse.from(f);
+                    fr.setIsStarred(starredFolderIds.contains(f.getId()));
+                    return fr;
+                }).collect(Collectors.toList()))
+                .files(files.stream().map(f -> {
+                    com.storvix.backend.dto.FileResponse fr = com.storvix.backend.dto.FileResponse.from(f);
+                    fr.setIsStarred(starredFileIds.contains(f.getId()));
+                    return fr;
+                }).collect(Collectors.toList()))
                 .breadcrumb(breadcrumb)
                 .folderId(folderId)
                 .build();
