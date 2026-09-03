@@ -33,6 +33,7 @@ public class ShareService {
     private final FolderRepository folderRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final PermissionService permissionService;
 
     public Map<String, Object> createShare(String userId, CreateShareRequest request) {
         String normalizedEmail = request.getEmail().toLowerCase().trim();
@@ -46,12 +47,14 @@ public class ShareService {
         if (request.getFileId() != null && !request.getFileId().isEmpty()) {
             file = fileRepository.findById(request.getFileId())
                     .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+            permissionService.validateFileOwner(userId, file);
             resourceName = file.getName();
             resourceType = "file";
             ownerId = file.getOwner().getId();
         } else if (request.getFolderId() != null && !request.getFolderId().isEmpty()) {
             folder = folderRepository.findById(request.getFolderId())
                     .orElseThrow(() -> new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+            permissionService.validateFolderOwner(userId, folder);
             resourceName = folder.getName();
             resourceType = "folder";
             ownerId = folder.getOwner().getId();
@@ -164,6 +167,12 @@ public class ShareService {
             throw new AppException("Resource not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
         }
 
+        if (file != null) {
+            permissionService.validateFileOwner(userId, file);
+        } else {
+            permissionService.validateFolderOwner(userId, folder);
+        }
+
         List<ShareResponse> result = new ArrayList<>();
 
         List<Share> shares = shareRepository.findAll().stream()
@@ -188,12 +197,16 @@ public class ShareService {
     public ShareResponse updateShare(String userId, String shareId, String role) {
         Share share = shareRepository.findById(shareId).orElse(null);
         if (share != null) {
+            if (share.getFile() != null) permissionService.validateFileOwner(userId, share.getFile());
+            if (share.getFolder() != null) permissionService.validateFolderOwner(userId, share.getFolder());
             share.setRole(role);
             return ShareResponse.from(shareRepository.save(share));
         }
 
         ShareInvite invite = shareInviteRepository.findById(shareId).orElse(null);
         if (invite != null && "pending".equals(invite.getStatus())) {
+            if (invite.getFile() != null) permissionService.validateFileOwner(userId, invite.getFile());
+            if (invite.getFolder() != null) permissionService.validateFolderOwner(userId, invite.getFolder());
             invite.setRole(role);
             return ShareResponse.from(shareInviteRepository.save(invite));
         }
@@ -204,12 +217,16 @@ public class ShareService {
     public Map<String, Boolean> removeShare(String userId, String shareId) {
         Share share = shareRepository.findById(shareId).orElse(null);
         if (share != null) {
+            if (share.getFile() != null) permissionService.validateFileOwner(userId, share.getFile());
+            if (share.getFolder() != null) permissionService.validateFolderOwner(userId, share.getFolder());
             shareRepository.delete(share);
             return Map.of("deleted", true);
         }
 
         ShareInvite invite = shareInviteRepository.findById(shareId).orElse(null);
         if (invite != null) {
+            if (invite.getFile() != null) permissionService.validateFileOwner(userId, invite.getFile());
+            if (invite.getFolder() != null) permissionService.validateFolderOwner(userId, invite.getFolder());
             invite.setStatus("revoked");
             shareInviteRepository.save(invite);
             return Map.of("deleted", true);

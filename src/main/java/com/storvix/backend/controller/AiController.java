@@ -33,18 +33,25 @@ public class AiController {
     private final AiCacheRepository aiCacheRepository;
     private final AiConversationRepository aiConversationRepository;
     private final S3StorageService s3StorageService;
+    private final com.storvix.backend.service.PermissionService permissionService;
 
     private byte[] getAuthorizedFileBuffer(String userId, String fileId) {
         File file = fileRepository.findById(fileId).orElse(null);
         if (file == null || file.getIsDeleted() || !"completed".equals(file.getUploadStatus())) {
             throw new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
         }
+        permissionService.validateFileReadAccess(userId, file);
 
         return s3StorageService.getObjectAsBytes(file.getStorageKey());
     }
 
-    private File getFile(String fileId) {
-        return fileRepository.findById(fileId).orElse(null);
+    private File getAuthorizedFile(String userId, String fileId) {
+        File file = fileRepository.findById(fileId).orElse(null);
+        if (file == null || file.getIsDeleted()) {
+            throw new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
+        }
+        permissionService.validateFileReadAccess(userId, file);
+        return file;
     }
 
     @PostMapping("/{fileId}/summarize")
@@ -52,7 +59,7 @@ public class AiController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String fileId) {
         String userId = userDetails.getUser().getId();
-        File file = getFile(fileId);
+        File file = getAuthorizedFile(userId, fileId);
         if (file == null) throw new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
 
         AiCache cache = aiCacheRepository.findByFileIdAndAction(fileId, "summarize");
@@ -77,7 +84,7 @@ public class AiController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String fileId) {
         String userId = userDetails.getUser().getId();
-        File file = getFile(fileId);
+        File file = getAuthorizedFile(userId, fileId);
         if (file == null) throw new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
 
         AiCache cache = aiCacheRepository.findByFileIdAndAction(fileId, "short-summary");
@@ -102,7 +109,7 @@ public class AiController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String fileId) {
         String userId = userDetails.getUser().getId();
-        File file = getFile(fileId);
+        File file = getAuthorizedFile(userId, fileId);
         if (file == null) throw new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
 
         AiCache cache = aiCacheRepository.findByFileIdAndAction(fileId, "key-points");
@@ -127,7 +134,7 @@ public class AiController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String fileId) {
         String userId = userDetails.getUser().getId();
-        File file = getFile(fileId);
+        File file = getAuthorizedFile(userId, fileId);
         if (file == null) throw new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
 
         AiCache cache = aiCacheRepository.findByFileIdAndAction(fileId, "extract");
@@ -159,7 +166,7 @@ public class AiController {
         }
 
         String userId = userDetails.getUser().getId();
-        File file = getFile(fileId);
+        File file = getAuthorizedFile(userId, fileId);
         if (file == null) throw new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
 
         byte[] buffer = getAuthorizedFileBuffer(userId, fileId);
@@ -215,7 +222,7 @@ public class AiController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String fileId) {
         String userId = userDetails.getUser().getId();
-        File file = getFile(fileId);
+        File file = getAuthorizedFile(userId, fileId);
         if (file == null) throw new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
 
         List<Map<String, Object>> messages = new ArrayList<>();
@@ -239,7 +246,7 @@ public class AiController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String fileId) {
         String userId = userDetails.getUser().getId();
-        File file = getFile(fileId);
+        File file = getAuthorizedFile(userId, fileId);
         if (file == null) throw new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
 
         AiConversation conversation = aiConversationRepository.findByUserIdAndFileId(userId, fileId).orElse(null);

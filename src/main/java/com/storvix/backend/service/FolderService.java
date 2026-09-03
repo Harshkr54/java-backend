@@ -27,6 +27,7 @@ public class FolderService {
     private final com.storvix.backend.repository.UserRepository userRepository;
     private final ActivityService activityService;
     private final StarRepository starRepository;
+    private final PermissionService permissionService;
 
     public List<Map<String, String>> buildBreadcrumb(String folderId, String ownerId) {
         List<Map<String, String>> crumbs = new ArrayList<>();
@@ -105,6 +106,8 @@ public class FolderService {
             if (folder.getIsDeleted()) {
                 throw new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
             }
+            permissionService.validateFolderReadAccess(userId, folder);
+
             folders = folderRepository.findByParentFolderIdAndIsDeletedFalseOrderByName(folderId);
             files = fileRepository.findByFolderIdAndIsDeletedFalseAndUploadStatusOrderByName(folderId, "completed");
         } else {
@@ -143,9 +146,10 @@ public class FolderService {
     public FolderResponse getFolder(String userId, String folderId) {
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
-        if (folder.getIsDeleted() || !folder.getOwner().getId().equals(userId)) {
+        if (folder.getIsDeleted()) {
             throw new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND");
         }
+        permissionService.validateFolderReadAccess(userId, folder);
         return FolderResponse.from(folder);
     }
 
@@ -169,9 +173,7 @@ public class FolderService {
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
 
-        if (!folder.getOwner().getId().equals(userId)) {
-            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
-        }
+        permissionService.validateFolderWriteAccess(userId, folder);
 
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         folder.setIsDeleted(true);
@@ -211,9 +213,7 @@ public class FolderService {
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new AppException("Folder not found in trash", HttpStatus.NOT_FOUND, "NOT_FOUND"));
 
-        if (!folder.getOwner().getId().equals(userId)) {
-            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
-        }
+        permissionService.validateFolderWriteAccess(userId, folder);
 
         if (folder.getParentFolder() != null) {
             Folder parent = folderRepository.findById(folder.getParentFolder().getId()).orElse(null);
@@ -235,9 +235,7 @@ public class FolderService {
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
 
-        if (!folder.getOwner().getId().equals(userId)) {
-            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
-        }
+        permissionService.validateFolderWriteAccess(userId, folder);
 
         if (newName == null || newName.trim().isEmpty()) {
             throw new AppException("Folder name cannot be empty", HttpStatus.BAD_REQUEST, "VALIDATION_ERROR");
@@ -255,9 +253,7 @@ public class FolderService {
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
 
-        if (!folder.getOwner().getId().equals(userId)) {
-            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
-        }
+        permissionService.validateFolderOwner(userId, folder);
         
         List<String> descendants = new ArrayList<>(); // To fully match Node.js we need a collectAllDescendantFolderIds that includes deleted folders
         Queue<String> queue = new LinkedList<>();

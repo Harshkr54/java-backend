@@ -31,6 +31,7 @@ public class FileService {
     private final UserRepository userRepository;
     private final S3StorageService s3StorageService;
     private final ActivityService activityService;
+    private final PermissionService permissionService;
 
     public Map<String, Object> initUpload(String userId, InitUploadRequest request) {
         User user = userRepository.findById(userId)
@@ -44,6 +45,7 @@ public class FileService {
         if (request.getFolderId() != null && !request.getFolderId().isEmpty()) {
             folder = folderRepository.findById(request.getFolderId())
                     .orElseThrow(() -> new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+            permissionService.validateFolderWriteAccess(userId, folder);
         }
 
         String extension = "";
@@ -102,6 +104,8 @@ public class FileService {
         File file = fileRepository.findById(fileId)
                 .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
         
+        permissionService.validateFileReadAccess(userId, file);
+
         String dispositionType = isPreview ? "inline" : "attachment";
         String contentDisposition = dispositionType + "; filename=\"" + file.getOriginalName() + "\"";
         String downloadUrl = s3StorageService.generateDownloadUrl(file.getStorageKey(), file.getMimeType(), contentDisposition);
@@ -119,9 +123,7 @@ public class FileService {
         File file = fileRepository.findById(fileId)
                 .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
 
-        if (!file.getOwner().getId().equals(userId)) {
-            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
-        }
+        permissionService.validateFileWriteAccess(userId, file);
 
         file.setIsDeleted(true);
         file.setDeletedAt(java.time.LocalDateTime.now());
@@ -136,9 +138,7 @@ public class FileService {
         File file = fileRepository.findById(fileId)
                 .orElseThrow(() -> new AppException("File not found in trash", HttpStatus.NOT_FOUND, "NOT_FOUND"));
 
-        if (!file.getOwner().getId().equals(userId)) {
-            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
-        }
+        permissionService.validateFileWriteAccess(userId, file);
 
         if (file.getFolder() != null) {
             Folder folder = folderRepository.findById(file.getFolder().getId()).orElse(null);
@@ -160,9 +160,7 @@ public class FileService {
         File file = fileRepository.findById(fileId)
                 .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
 
-        if (!file.getOwner().getId().equals(userId)) {
-            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
-        }
+        permissionService.validateFileWriteAccess(userId, file);
 
         if (newName == null || newName.trim().isEmpty()) {
             throw new AppException("File name cannot be empty", HttpStatus.BAD_REQUEST, "VALIDATION_ERROR");
@@ -180,9 +178,7 @@ public class FileService {
         File file = fileRepository.findById(fileId)
                 .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
 
-        if (!file.getOwner().getId().equals(userId)) {
-            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
-        }
+        permissionService.validateFileOwner(userId, file);
 
         Long size = file.getSize() != null ? file.getSize() : 0L;
         fileRepository.delete(file);
@@ -200,6 +196,8 @@ public class FileService {
         File file = fileRepository.findById(fileId)
                 .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
 
+        permissionService.validateFileReadAccess(userId, file);
+
         List<FileRevision> revisions = fileRevisionRepository.findByFileIdOrderByVersionNumberDesc(fileId);
         return revisions.stream().map(FileRevisionResponse::from).toList();
     }
@@ -207,6 +205,8 @@ public class FileService {
     public Map<String, String> getRevisionDownloadUrl(String userId, String fileId, String revisionId) {
         File file = fileRepository.findById(fileId)
                 .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
+
+        permissionService.validateFileReadAccess(userId, file);
 
         FileRevision revision = fileRevisionRepository.findByFileIdAndId(fileId, revisionId)
                 .orElseThrow(() -> new AppException("Revision not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
@@ -223,9 +223,7 @@ public class FileService {
         File file = fileRepository.findById(fileId)
                 .orElseThrow(() -> new AppException("File not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
 
-        if (!file.getOwner().getId().equals(userId)) {
-            throw new AppException("Forbidden", HttpStatus.FORBIDDEN, "FORBIDDEN");
-        }
+        permissionService.validateFileWriteAccess(userId, file);
 
         FileRevision revision = fileRevisionRepository.findByFileIdAndId(fileId, revisionId)
                 .orElseThrow(() -> new AppException("Revision not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));

@@ -29,12 +29,14 @@ public class PublicLinkController {
     private final FileRepository fileRepository;
     private final FolderRepository folderRepository;
     private final EmailService emailService;
+    private final com.storvix.backend.service.PermissionService permissionService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<Map<String, Object>>> createPublicLink(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody Map<String, Object> request) {
         
+        String userId = userDetails.getUser().getId();
         String fileId = (String) request.get("fileId");
         String folderId = (String) request.get("folderId");
         String password = (String) request.get("password");
@@ -61,11 +63,13 @@ public class PublicLinkController {
         
         if (fileId != null && !fileId.trim().isEmpty()) {
             File file = fileRepository.findById(fileId.trim()).orElseThrow();
+            permissionService.validateFileOwner(userId, file);
             link.setFile(file);
             resourceName = file.getName();
             resourceType = "file";
         } else if (folderId != null && !folderId.trim().isEmpty()) {
             Folder folder = folderRepository.findById(folderId.trim()).orElseThrow();
+            permissionService.validateFolderOwner(userId, folder);
             link.setFolder(folder);
             resourceName = folder.getName();
             resourceType = "folder";
@@ -158,10 +162,13 @@ public class PublicLinkController {
             @PathVariable String id,
             @RequestBody Map<String, Object> body) {
         
+        String userId = userDetails.getUser().getId();
         PublicLink link = publicLinkRepository.findById(id).orElse(null);
         if (link == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail("Link not found", "NOT_FOUND"));
         }
+        if (link.getFile() != null) permissionService.validateFileOwner(userId, link.getFile());
+        if (link.getFolder() != null) permissionService.validateFolderOwner(userId, link.getFolder());
 
         if (body.containsKey("isActive")) {
             link.setIsActive((Boolean) body.get("isActive"));
@@ -182,11 +189,14 @@ public class PublicLinkController {
             @PathVariable String id,
             @RequestBody Map<String, String> body) {
         
+        String userId = userDetails.getUser().getId();
         String recipientEmail = body.get("email");
         PublicLink link = publicLinkRepository.findById(id).orElse(null);
         if (link == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail("Link not found", "NOT_FOUND"));
         }
+        if (link.getFile() != null) permissionService.validateFileOwner(userId, link.getFile());
+        if (link.getFolder() != null) permissionService.validateFolderOwner(userId, link.getFolder());
 
         String resourceName = link.getFile() != null ? link.getFile().getName() : (link.getFolder() != null ? link.getFolder().getName() : "");
         String resourceType = link.getFile() != null ? "file" : "folder";
@@ -217,8 +227,11 @@ public class PublicLinkController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String id) {
         
+        String userId = userDetails.getUser().getId();
         PublicLink link = publicLinkRepository.findById(id).orElse(null);
         if (link != null) {
+            if (link.getFile() != null) permissionService.validateFileOwner(userId, link.getFile());
+            if (link.getFolder() != null) permissionService.validateFolderOwner(userId, link.getFolder());
             publicLinkRepository.delete(link);
         }
         return ResponseEntity.ok(ApiResponse.success("Public link deleted", null));
