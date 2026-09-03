@@ -64,7 +64,7 @@ public class ShareController {
         return ResponseEntity.ok(ApiResponse.success("Share removed", result));
     }
 
-    @GetMapping("/me")
+    @GetMapping("/shared-with-me")
     public ResponseEntity<ApiResponse<List<ShareResponse>>> sharedWithMe(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<ShareResponse> items = shareService.getSharedWithMe(userDetails.getUser().getId());

@@ -16,6 +16,9 @@ public class ShareResponse {
     private String email;
     private LocalDateTime createdAt;
     private Object sharedWith; // Could be a map with name and email
+    private FileResponse file;
+    private FolderResponse folder;
+    private Object owner;
 
     public static ShareResponse from(Share share) {
         return ShareResponse.builder()
@@ -28,6 +31,12 @@ public class ShareResponse {
                         "name", share.getSharedWith().getName(),
                         "email", share.getSharedWith().getEmail()
                 ))
+                .file(share.getFile() != null ? FileResponse.from(share.getFile()) : null)
+                .folder(share.getFolder() != null ? FolderResponse.from(share.getFolder()) : null)
+                .owner(share.getOwner() != null ? java.util.Map.of(
+                        "name", share.getOwner().getName(),
+                        "email", share.getOwner().getEmail()
+                ) : null)
                 .build();
     }
 
@@ -43,6 +52,12 @@ public class ShareResponse {
                         "name", invite.getEmail(),
                         "email", invite.getEmail()
                 ))
+                .file(invite.getFile() != null ? FileResponse.from(invite.getFile()) : null)
+                .folder(invite.getFolder() != null ? FolderResponse.from(invite.getFolder()) : null)
+                .owner(invite.getOwner() != null ? java.util.Map.of(
+                        "name", invite.getOwner().getName(),
+                        "email", invite.getOwner().getEmail()
+                ) : null)
                 .build();
     }
 }
