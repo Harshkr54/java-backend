@@ -69,6 +69,7 @@ public class FileService {
         result.put("fileId", file.getId());
         result.put("uploadUrl", uploadUrl);
         result.put("storageKey", storageKey);
+        result.put("provider", file.getStorageProvider());
         return result;
     }
 
