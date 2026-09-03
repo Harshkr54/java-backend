@@ -32,7 +32,7 @@ public class FolderService {
         root.put("name", "My Drive");
         crumbs.add(root);
 
-        if (folderId == null || folderId.isEmpty()) return crumbs;
+        if (folderId == null || folderId.isEmpty() || folderId.equals("root")) return crumbs;
 
         Folder current = folderRepository.findById(folderId).orElse(null);
         List<Map<String, String>> stack = new ArrayList<>();
@@ -96,7 +96,7 @@ public class FolderService {
         List<Folder> folders;
         List<File> files;
 
-        if (folderId != null && !folderId.isEmpty()) {
+        if (folderId != null && !folderId.isEmpty() && !folderId.equals("root")) {
             Folder folder = folderRepository.findById(folderId)
                     .orElseThrow(() -> new AppException("Folder not found", HttpStatus.NOT_FOUND, "NOT_FOUND"));
             if (folder.getIsDeleted()) {
