@@ -32,6 +32,14 @@ public class File {
     @JoinColumn(name = "folder_id")
     private Folder folder;
 
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "file_tags",
+        joinColumns = @JoinColumn(name = "file_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private java.util.Set<Tag> tags = new java.util.HashSet<>();
+
     @Column(nullable = false, unique = true)
     private String storageKey;
 

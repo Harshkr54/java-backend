@@ -6,44 +6,37 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "folders")
+@Table(name = "tags", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"owner_id", "name"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
-public class Folder {
+public class Tag {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false)
+    private String colorHex = "#3B82F6";
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_folder_id")
-    private Folder parentFolder;
+    @ManyToMany(mappedBy = "tags")
+    private Set<File> files = new HashSet<>();
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "folder_tags",
-        joinColumns = @JoinColumn(name = "folder_id"),
-        inverseJoinColumns = @JoinColumn(name = "tag_id")
-    )
-    private java.util.Set<Tag> tags = new java.util.HashSet<>();
-
-    @Column(nullable = false)
-    private String path = "/";
-
-    @Column(nullable = false)
-    private Boolean isDeleted = false;
-
-    private LocalDateTime deletedAt;
+    @ManyToMany(mappedBy = "tags")
+    private Set<Folder> folders = new HashSet<>();
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -56,6 +49,9 @@ public class Folder {
         LocalDateTime now = LocalDateTime.now();
         createdAt = now;
         updatedAt = now;
+        if (colorHex == null || colorHex.trim().isEmpty()) {
+            colorHex = "#3B82F6";
+        }
     }
 
     @PreUpdate

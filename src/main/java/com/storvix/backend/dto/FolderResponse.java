@@ -17,6 +17,7 @@ public class FolderResponse {
     private LocalDateTime updatedAt;
     private Boolean isDeleted;
     private Boolean isStarred;
+    private java.util.List<TagResponse> tags;
 
     @com.fasterxml.jackson.annotation.JsonProperty("_id")
     public String get_id() {
@@ -27,12 +28,13 @@ public class FolderResponse {
         return FolderResponse.builder()
                 .id(folder.getId())
                 .name(folder.getName())
-                .ownerId(folder.getOwner().getId())
+                .ownerId(folder.getOwner() != null ? folder.getOwner().getId() : null)
                 .parentFolderId(folder.getParentFolder() != null ? folder.getParentFolder().getId() : null)
                 .path(folder.getPath())
                 .createdAt(folder.getCreatedAt())
                 .updatedAt(folder.getUpdatedAt())
                 .isDeleted(folder.getIsDeleted())
+                .tags(folder.getTags() != null ? folder.getTags().stream().map(TagResponse::from).toList() : java.util.Collections.emptyList())
                 .build();
     }
 }

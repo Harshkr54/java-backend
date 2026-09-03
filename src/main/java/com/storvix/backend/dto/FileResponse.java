@@ -24,6 +24,7 @@ public class FileResponse {
     private Boolean isDeleted;
     private Boolean isStarred;
     private Integer versionNumber;
+    private java.util.List<TagResponse> tags;
 
     @com.fasterxml.jackson.annotation.JsonProperty("_id")
     public String get_id() {
@@ -47,6 +48,7 @@ public class FileResponse {
                 .updatedAt(file.getUpdatedAt())
                 .isDeleted(file.getIsDeleted())
                 .versionNumber(file.getVersionNumber() != null ? file.getVersionNumber() : 1)
+                .tags(file.getTags() != null ? file.getTags().stream().map(TagResponse::from).toList() : java.util.Collections.emptyList())
                 .build();
     }
 }
